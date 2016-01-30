@@ -17,10 +17,9 @@ type Incident struct {
 func IncidentStore(incidentChan chan Incident, blockChan chan blockstore.Block) {
   ticker := time.NewTicker(time.Second * 5)
   var incidents []Incident
-  var msg Incident
   for {
     select {
-    case msg = <-incidentChan:
+    case msg := <-incidentChan:
         log.Println("[incidentStore] " + msg.Ip)
         incidents = append(incidents, msg)
       case <-ticker.C:

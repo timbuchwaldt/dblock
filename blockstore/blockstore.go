@@ -15,10 +15,9 @@ type Block struct {
 func BlockStore(blockChan chan Block, blockControlChan chan blocker.ControlMsg) {
   ticker := time.NewTicker(time.Second * 5)
   var blocks []Block
-  var msg Block
   for {
     select {
-    case msg = <-blockChan:
+    case msg := <-blockChan:
         log.Println("[blockStore] " + msg.Ip)
         blockControlChan <- blocker.ControlMsg{Ip: msg.Ip, Block: true}
         blocks = append(blocks, msg)
