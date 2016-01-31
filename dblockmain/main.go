@@ -35,7 +35,7 @@ func Main() {
 	/*
 		Startup: Start blocker, block store, incident store
 	*/
-	go blocker.Blocker(blockControlChan)
+	go blocker.Blocker(blockControlChan, config.Whitelist)
 	go incidentstore.IncidentStore(incidentChan, syncChannel, *timebucket, *max_incidents)
 	go sync.Start(blockControlChan, syncChannel)
 	/*

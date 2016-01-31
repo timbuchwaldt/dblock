@@ -11,11 +11,16 @@ type ControlMsg struct {
 	Block bool
 }
 
-func Blocker(controlChan chan ControlMsg) {
+func Blocker(controlChan chan ControlMsg, stringWhitelist []string) {
 
-	var whitelist [2]net.IPNet
-	_, local, _ := net.ParseCIDR("127.0.0.1/8")
-	whitelist[0] = *local
+	var whitelist []net.IPNet
+	for _, string_entry := range stringWhitelist {
+		_, network, err := net.ParseCIDR(string_entry)
+		if err != nil {
+			log.Fatal(err)
+		}
+		whitelist = append(whitelist, *network)
+	}
 
 	executeCommand("create dblock hash:ip maxelem 1048576 -exist")
 	executeCommand("flush dblock")
@@ -23,8 +28,14 @@ func Blocker(controlChan chan ControlMsg) {
 	executeCommand("flush dblock6 ")
 
 	for msg := range controlChan {
-		if local.Contains(msg.Ip) {
-			log.Println("IP is part of whitelisted networks")
+		whitelisted := false
+		for _, entry := range whitelist {
+			if entry.Contains(msg.Ip) {
+				whitelisted = true
+			}
+		}
+		if whitelisted {
+			log.Println("[sync]\tIP is part of whitelisted networks")
 		} else {
 			if msg.Block {
 				if msg.Ip.To4() != nil {

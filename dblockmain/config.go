@@ -6,7 +6,8 @@ import (
 )
 
 type Config struct {
-	Files map[string]LogFileConfig
+	Files     map[string]LogFileConfig
+	Whitelist []string
 }
 
 type LogFileConfig struct {
