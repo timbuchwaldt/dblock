@@ -8,6 +8,7 @@ import (
 	"github.com/timbuchwaldt/dblock/blockstore"
 	"github.com/timbuchwaldt/dblock/incidentstore"
 	"log"
+	"net"
 	"net/http"
 	"regexp"
 	"sync"
@@ -72,7 +73,10 @@ func follow_and_analyze(filename string, c chan incidentstore.Incident) {
 		result := regex.FindStringSubmatch(line.Text)
 		if result != nil {
 			log.Println(result[1])
-			c <- incidentstore.Incident{Filename: filename, Ip: "192.168.100.1", Time: time.Now(), Line: line.Text}
+			ip := net.ParseIP(result[1])
+			if ip != nil {
+				c <- incidentstore.Incident{Filename: filename, Ip: ip, Time: time.Now(), Line: line.Text}
+			}
 		}
 		// match against regexes here, if one matches, create "incident" struct
 	}
