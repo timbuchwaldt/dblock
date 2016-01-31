@@ -97,5 +97,5 @@ func watchKey(key string, blockControlChan chan blocker.ControlMsg, kapi client.
 
 func handleKey(node client.Node, blockControlChan chan blocker.ControlMsg, block bool) {
 	ip := ipFromEtcdKey(node.Key)
-	blockControlChan <- blocker.ControlMsg{Ip: ip, Block: true}
+	blockControlChan <- blocker.ControlMsg{Ip: ip, Block: block}
 }
