@@ -22,6 +22,29 @@ func Start(blockControlChan chan blocker.ControlMsg, syncChannel chan blocker.Co
 		log.Fatal(err)
 	}
 	kapi := client.NewKeysAPI(c)
+
+	log.Println("[sync]\tEnsuring dblock + dblock6 directories exist")
+	kapi.Set(context.Background(), "dblock", "", &client.SetOptions{Dir: true})
+	kapi.Set(context.Background(), "dblock6", "", &client.SetOptions{Dir: true})
+
+	log.Println("[sync]\tReading dblock entries")
+	result, err2 := kapi.Get(context.Background(), "dblock", &client.GetOptions{Recursive: true})
+	if err2 != nil {
+		log.Fatal(err2)
+	}
+	for _, node := range result.Node.Nodes {
+		handleKey(*node, blockControlChan, true)
+	}
+
+	log.Println("[sync]\tReading dblock6 entries")
+	result6, err3 := kapi.Get(context.Background(), "dblock6", &client.GetOptions{Recursive: true})
+	if err3 != nil {
+		log.Fatal(err3)
+	}
+	for _, node := range result6.Node.Nodes {
+		handleKey(*node, blockControlChan, true)
+	}
+
 	go watchKey("dblock", blockControlChan, kapi)
 	go watchKey("dblock6", blockControlChan, kapi)
 	go sync(kapi, syncChannel)
@@ -60,17 +83,19 @@ func watchKey(key string, blockControlChan chan blocker.ControlMsg, kapi client.
 
 		switch response.Action {
 		case "set":
-			ip := ipFromEtcdKey(response.Node.Key)
-			blockControlChan <- blocker.ControlMsg{Ip: ip, Block: true}
-			log.Println("[sync]\tetcd: add" + ip.String())
+			handleKey(*response.Node, blockControlChan, true)
+			log.Println("[sync]\tetcd: add: " + response.Node.Key)
 		case "delete":
-			ip := ipFromEtcdKey(response.Node.Key)
-			blockControlChan <- blocker.ControlMsg{Ip: ip, Block: false}
+			handleKey(*response.Node, blockControlChan, false)
 			log.Println("[sync]\tetcd: delete: " + response.Node.Key)
 		case "expire":
-			ip := ipFromEtcdKey(response.Node.Key)
-			blockControlChan <- blocker.ControlMsg{Ip: ip, Block: false}
+			handleKey(*response.Node, blockControlChan, false)
 			log.Println("[sync]\tetcd: expired: " + response.Node.Key)
 		}
 	}
+}
+
+func handleKey(node client.Node, blockControlChan chan blocker.ControlMsg, block bool) {
+	ip := ipFromEtcdKey(node.Key)
+	blockControlChan <- blocker.ControlMsg{Ip: ip, Block: true}
 }
