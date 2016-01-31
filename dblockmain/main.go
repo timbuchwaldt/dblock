@@ -11,7 +11,6 @@ import (
 	"net"
 	"net/http"
 	"regexp"
-	"sync"
 	"time"
 )
 
@@ -23,24 +22,31 @@ var (
 
 func Main() {
 	flag.Parse()
-	http.Handle("/metrics", prometheus.Handler())
-	go http.ListenAndServe(*addr, nil)
+	config := ParseConfig()
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	http.Handle("/metrics", prometheus.Handler())
 
 	log.Println("Hello world")
 	incidentChan := make(chan incidentstore.Incident, 100)
 	blockChan := make(chan blockstore.Block, 100)
 	blockControlChan := make(chan blocker.ControlMsg, 100)
-
+	/*
+		Startup: Start blocker, block store, incident store
+	*/
 	go blocker.Blocker(blockControlChan)
 	go blockstore.BlockStore(blockChan, blockControlChan)
 	go incidentstore.IncidentStore(incidentChan, blockChan, *timebucket, *max_incidents)
-	go follow_and_analyze("foo", incidentChan)
-	go follow_and_analyze("bar", incidentChan)
 
-	wg.Wait()
+	/*
+		Startup: start log file follower based on toml config
+	*/
+
+	for name, fileConfig := range config.Files {
+		log.Println("Setting up follower for " + name)
+		go follow_and_analyze(fileConfig.Filename, fileConfig.Regexes, incidentChan)
+	}
+
+	http.ListenAndServe(*addr, nil)
 
 }
 
@@ -55,7 +61,7 @@ func init() {
 	prometheus.MustRegister(incidentsCounter)
 }
 
-func follow_and_analyze(filename string, c chan incidentstore.Incident) {
+func follow_and_analyze(filename string, regexes []string, c chan incidentstore.Incident) {
 	t, err := tail.TailFile(filename,
 		tail.Config{
 			Follow:   true,                                  // actually follow the logs
@@ -65,17 +71,25 @@ func follow_and_analyze(filename string, c chan incidentstore.Incident) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	regex := regexp.MustCompile("Accepted publickey for .+ from (?P<ip>.+) port .*")
+	var compiledRegexes []regexp.Regexp
+	for _, regex := range regexes {
+		compiledRegex := regexp.MustCompile(regex)
+		compiledRegexes = append(compiledRegexes, *compiledRegex)
+	}
 
 	for line := range t.Lines {
-		incidentsCounter.Inc()
-		result := regex.FindStringSubmatch(line.Text)
-		if result != nil {
-			log.Println(result[1])
-			ip := net.ParseIP(result[1])
-			if ip != nil {
-				c <- incidentstore.Incident{Filename: filename, Ip: ip, Time: time.Now(), Line: line.Text}
+		// match each line against all regexes
+		for _, regex := range compiledRegexes {
+			result := regex.FindStringSubmatch(line.Text)
+			if result != nil {
+				log.Println(result[1])
+				ip := net.ParseIP(result[1])
+				if ip != nil {
+					c <- incidentstore.Incident{Filename: filename, Ip: ip, Time: time.Now(), Line: line.Text}
+
+					// break here, this line matched on regex
+					break
+				}
 			}
 		}
 		// match against regexes here, if one matches, create "incident" struct

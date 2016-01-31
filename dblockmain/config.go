@@ -1,0 +1,29 @@
+package dblockmain
+
+import (
+	"github.com/BurntSushi/toml"
+	"io/ioutil"
+)
+
+type Config struct {
+	Files map[string]LogFileConfig
+}
+
+type LogFileConfig struct {
+	Filename string
+	Regexes  []string
+}
+
+func ParseConfig() Config {
+	tomlData, err := ioutil.ReadFile("config.toml")
+	check(err)
+	var conf Config
+	toml.Decode(string(tomlData[:]), &conf)
+	return conf
+}
+
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
+}

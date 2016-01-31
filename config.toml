@@ -1,0 +1,3 @@
+[Files.bar]
+filename = "bar"
+regexes = ["Accepted publickey for .+ from (?P<ip>.+) port .*"]
