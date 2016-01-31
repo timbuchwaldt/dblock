@@ -7,6 +7,8 @@ import (
 	"github.com/timbuchwaldt/dblock/blocker"
 	"github.com/timbuchwaldt/dblock/blockstore"
 	"github.com/timbuchwaldt/dblock/incidentstore"
+	"github.com/timbuchwaldt/dblock/sync"
+
 	"log"
 	"net"
 	"net/http"
@@ -36,7 +38,7 @@ func Main() {
 	go blocker.Blocker(blockControlChan)
 	go blockstore.BlockStore(blockChan, blockControlChan)
 	go incidentstore.IncidentStore(incidentChan, blockChan, *timebucket, *max_incidents)
-
+	go sync.Start(blockControlChan)
 	/*
 		Startup: start log file follower based on toml config
 	*/
