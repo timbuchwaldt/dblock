@@ -15,7 +15,6 @@ func Blocker(controlChan chan ControlMsg) {
 	log.Print("ipset create dblock6 hash:ip maxelem 1048576 inet6 -exist")
 
 	for msg := range controlChan {
-		// we should dispatch to the underlying blocking (iptables)
 		if msg.Block {
 			if msg.Ip.To4() != nil {
 				// this is an ipv4 address
