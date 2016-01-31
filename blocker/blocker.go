@@ -17,10 +17,10 @@ func Blocker(controlChan chan ControlMsg) {
 	_, local, _ := net.ParseCIDR("127.0.0.1/8")
 	whitelist[0] = *local
 
-	exec.Command("ipset", "create dblock hash:ip maxelem 1048576 -exist").Run()        // create v4 set, -exist allows creation even if it exists
-	exec.Command("ipset", "flush dblock").Run()                                        // flush old rules
-	exec.Command("ipset", "create dblock6 hash:ip maxelem 1048576 inet6 -exist").Run() // create v6 set, -exist allows creation even if it exists
-	exec.Command("ipset", "flush dblock6 ").Run()                                      // flush old rules
+	executeCommand("create dblock hash:ip maxelem 1048576 -exist")
+	executeCommand("flush dblock")
+	executeCommand("create dblock6 hash:ip maxelem 1048576 inet6 -exist")
+	executeCommand("flush dblock6 ")
 
 	for msg := range controlChan {
 		if local.Contains(msg.Ip) {
@@ -30,23 +30,30 @@ func Blocker(controlChan chan ControlMsg) {
 				if msg.Ip.To4() != nil {
 					// this is an ipv4 address
 					log.Println("[blocker]\tBlocking ip " + msg.Ip.String())
-					exec.Command("ipset", "add dblock "+msg.Ip.String()+" -exist").Run()
+					executeCommand("add dblock " + msg.Ip.String() + " -exist")
 				} else {
 					// this is an ipv6 address
 					log.Println("[blocker]\tBlocking ipv6 " + msg.Ip.String())
-					exec.Command("ipset", "add dblock6 "+msg.Ip.String()+" -exist").Run()
+					executeCommand("add dblock6 " + msg.Ip.String() + " -exist")
 				}
 			} else {
 				if msg.Ip.To4() != nil {
 					// this is an ipv4 address
 					log.Println("[blocker]\tUnblocking ip " + msg.Ip.String())
-					exec.Command("ipset", "del dblock "+msg.Ip.String()+" -exist").Run()
+					executeCommand("del dblock " + msg.Ip.String() + " -exist")
 				} else {
 					// this is an ipv6 address
 					log.Println("[blocker]\tUnblocking ipv6 " + msg.Ip.String())
-					exec.Command("ipset", "del dblock6 "+msg.Ip.String()+" -exist").Run()
+					executeCommand("del dblock6 " + msg.Ip.String() + " -exist")
 				}
 			}
 		}
+	}
+}
+
+func executeCommand(arguments string) {
+	err := exec.Command("echo", "ipset "+arguments).Run()
+	if err != nil {
+		log.Fatal(err)
 	}
 }
