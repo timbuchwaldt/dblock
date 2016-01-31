@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func Start(blockControlChan chan blocker.ControlMsg) {
+func Start(blockControlChan chan blocker.ControlMsg, syncChannel chan blocker.ControlMsg) {
 	cfg := client.Config{
 		Endpoints: []string{"http://127.0.0.1:2379"},
 		Transport: client.DefaultTransport,
@@ -24,6 +24,27 @@ func Start(blockControlChan chan blocker.ControlMsg) {
 	kapi := client.NewKeysAPI(c)
 	go watchKey("dblock", blockControlChan, kapi)
 	go watchKey("dblock6", blockControlChan, kapi)
+	go sync(kapi, syncChannel)
+}
+
+func sync(kapi client.KeysAPI, syncChannel chan blocker.ControlMsg) {
+	for {
+		msg := <-syncChannel
+		var folder string
+		if msg.Ip.To4() != nil {
+			folder = "dblock6/"
+		} else {
+			folder = "dblock/"
+		}
+		_, err := kapi.Set(context.Background(), folder+msg.Ip.String(), "0", &client.SetOptions{TTL: 5 * time.Second})
+		if err != nil {
+			log.Fatal(err)
+		} else {
+			// print common key info
+			log.Println("[sync]\tAdded block: " + msg.Ip.String())
+		}
+	}
+
 }
 
 func ipFromEtcdKey(key string) net.IP {
@@ -41,15 +62,15 @@ func watchKey(key string, blockControlChan chan blocker.ControlMsg, kapi client.
 		case "set":
 			ip := ipFromEtcdKey(response.Node.Key)
 			blockControlChan <- blocker.ControlMsg{Ip: ip, Block: true}
-			log.Println("New key was set: " + ip.String())
+			log.Println("[sync]\tetcd: add" + ip.String())
 		case "delete":
 			ip := ipFromEtcdKey(response.Node.Key)
 			blockControlChan <- blocker.ControlMsg{Ip: ip, Block: false}
-			log.Println("key was deleted: " + response.Node.Key)
+			log.Println("[sync]\tetcd: delete: " + response.Node.Key)
 		case "expire":
 			ip := ipFromEtcdKey(response.Node.Key)
 			blockControlChan <- blocker.ControlMsg{Ip: ip, Block: false}
-			log.Println("Key expired: " + response.Node.Key)
+			log.Println("[sync]\tetcd: expired: " + response.Node.Key)
 		}
 	}
 }

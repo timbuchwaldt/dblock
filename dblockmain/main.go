@@ -5,7 +5,6 @@ import (
 	"github.com/hpcloud/tail"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/timbuchwaldt/dblock/blocker"
-	"github.com/timbuchwaldt/dblock/blockstore"
 	"github.com/timbuchwaldt/dblock/incidentstore"
 	"github.com/timbuchwaldt/dblock/sync"
 
@@ -30,21 +29,21 @@ func Main() {
 	http.Handle("/metrics", prometheus.Handler())
 
 	incidentChan := make(chan incidentstore.Incident, 100)
-	blockChan := make(chan blockstore.Block, 100)
 	blockControlChan := make(chan blocker.ControlMsg, 100)
+	syncChannel := make(chan blocker.ControlMsg, 100)
+
 	/*
 		Startup: Start blocker, block store, incident store
 	*/
 	go blocker.Blocker(blockControlChan)
-	go blockstore.BlockStore(blockChan, blockControlChan)
-	go incidentstore.IncidentStore(incidentChan, blockChan, *timebucket, *max_incidents)
-	go sync.Start(blockControlChan)
+	go incidentstore.IncidentStore(incidentChan, syncChannel, *timebucket, *max_incidents)
+	go sync.Start(blockControlChan, syncChannel)
 	/*
 		Startup: start log file follower based on toml config
 	*/
 
 	for name, fileConfig := range config.Files {
-		log.Println("Setting up follower for " + name)
+		log.Println("[main]\tSetting up follower for " + name)
 		go follow_and_analyze(fileConfig.Filename, fileConfig.Regexes, incidentChan)
 	}
 
@@ -84,7 +83,6 @@ func follow_and_analyze(filename string, regexes []string, c chan incidentstore.
 		for _, regex := range compiledRegexes {
 			result := regex.FindStringSubmatch(line.Text)
 			if result != nil {
-				log.Println(result[1])
 				ip := net.ParseIP(result[1])
 				if ip != nil {
 					c <- incidentstore.Incident{Filename: filename, Ip: ip, Time: time.Now(), Line: line.Text}

@@ -15,8 +15,8 @@ func Blocker(controlChan chan ControlMsg) {
 	var whitelist [2]net.IPNet
 	_, local, _ := net.ParseCIDR("127.0.0.1/8")
 	whitelist[0] = *local
-	log.Print("ipset create dblock hash:ip maxelem 1048576 -exist")
-	log.Print("ipset create dblock6 hash:ip maxelem 1048576 inet6 -exist")
+	log.Print("[blocker]\tipset create dblock hash:ip maxelem 1048576 -exist")
+	log.Print("[blocker]\tipset create dblock6 hash:ip maxelem 1048576 inet6 -exist")
 
 	for msg := range controlChan {
 		if local.Contains(msg.Ip) {
@@ -25,22 +25,22 @@ func Blocker(controlChan chan ControlMsg) {
 			if msg.Block {
 				if msg.Ip.To4() != nil {
 					// this is an ipv4 address
-					log.Println("Blocking ip " + msg.Ip.String())
-					log.Print("ipset add dblock " + msg.Ip.String() + " -exist")
+					log.Println("[blocker]\tBlocking ip " + msg.Ip.String())
+					log.Print("[blocker]\tipset add dblock " + msg.Ip.String() + " -exist")
 				} else {
 					// this is an ipv6 address
-					log.Println("Blocking ip " + msg.Ip.String())
-					log.Print("ipset add dblock6 " + msg.Ip.String() + " -exist")
+					log.Println("[blocker]\tBlocking ip " + msg.Ip.String())
+					log.Print("[blocker]\tipset add dblock6 " + msg.Ip.String() + " -exist")
 				}
 			} else {
 				if msg.Ip.To4() != nil {
 					// this is an ipv4 address
-					log.Println("Blocking ip " + msg.Ip.String())
-					log.Print("ipset del dblock " + msg.Ip.String() + " -exist")
+					log.Println("[blocker]\tUnblocking ip " + msg.Ip.String())
+					log.Print("[blocker]\tipset del dblock " + msg.Ip.String() + " -exist")
 				} else {
 					// this is an ipv6 address
-					log.Println("Blocking ip " + msg.Ip.String())
-					log.Print("ipset del dblock6 " + msg.Ip.String() + " -exist")
+					log.Println("[blocker]\tUnblocking ip " + msg.Ip.String())
+					log.Print("[blocker]\tipset del dblock6 " + msg.Ip.String() + " -exist")
 				}
 			}
 		}
