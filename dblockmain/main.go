@@ -9,6 +9,7 @@ import (
 	"github.com/timbuchwaldt/dblock/incidentstore"
 	"log"
 	"net/http"
+	"regexp"
 	"sync"
 	"time"
 )
@@ -56,18 +57,27 @@ func init() {
 func follow_and_analyze(filename string, c chan incidentstore.Incident) {
 	t, err := tail.TailFile(filename,
 		tail.Config{
-			Follow:   true,
-			ReOpen:   true,
-			Location: &tail.SeekInfo{Offset: 0, Whence: 2}})
+			Follow:   true,                                  // actually follow the logs
+			ReOpen:   true,                                  // allow logs to be rotated
+			Location: &tail.SeekInfo{Offset: 0, Whence: 2}}) // seek to end of file
 
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	regex, err := regexp.Compile("Accepted publickey for .+ from (?P<ip>.+) port .*")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	for line := range t.Lines {
 		incidentsCounter.Inc()
+		result := regex.FindStringSubmatch(line.Text)
+		if result != nil {
+			log.Println(result[1])
+			c <- incidentstore.Incident{Filename: filename, Ip: "192.168.100.1", Time: time.Now(), Line: line.Text}
+		}
 		// match against regexes here, if one matches, create "incident" struct
-		c <- incidentstore.Incident{Filename: filename, Ip: "192.168.100.1", Time: time.Now(), Line: line.Text}
 	}
 
 }
