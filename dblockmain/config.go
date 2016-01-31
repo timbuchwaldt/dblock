@@ -14,8 +14,8 @@ type LogFileConfig struct {
 	Regexes  []string
 }
 
-func ParseConfig() Config {
-	tomlData, err := ioutil.ReadFile("config.toml")
+func ParseConfig(file string) Config {
+	tomlData, err := ioutil.ReadFile(file)
 	check(err)
 	var conf Config
 	toml.Decode(string(tomlData[:]), &conf)

@@ -18,15 +18,15 @@ var (
 	addr          = flag.String("listen-address", ":8080", "The address to listen for prometheus requests.")
 	timebucket    = flag.Duration("incident-bucket", 5*time.Minute, "The number of seconds of incidents we compare.")
 	max_incidents = flag.Int("max-incidents", 5, "The number incidents allowed per incident-bucket.")
+	config_file   = flag.String("config", "/etc/dblock.toml", "The TOML config file to read.")
 )
 
 func Main() {
 	flag.Parse()
-	config := ParseConfig()
+	config := ParseConfig(*config_file)
 
 	http.Handle("/metrics", prometheus.Handler())
 
-	log.Println("Hello world")
 	incidentChan := make(chan incidentstore.Incident, 100)
 	blockChan := make(chan blockstore.Block, 100)
 	blockControlChan := make(chan blocker.ControlMsg, 100)
