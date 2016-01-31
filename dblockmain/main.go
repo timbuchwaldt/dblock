@@ -1,75 +1,73 @@
 package dblockmain
 
 import (
-  "github.com/hpcloud/tail"
-  "log"
-  "sync"
-  "time"
-  "github.com/timbuchwaldt/dblock/blockstore"
-  "github.com/timbuchwaldt/dblock/incidentstore"
-  "github.com/timbuchwaldt/dblock/blocker"
-  "flag"
-  "net/http"
-  "github.com/prometheus/client_golang/prometheus"
+	"flag"
+	"github.com/hpcloud/tail"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/timbuchwaldt/dblock/blocker"
+	"github.com/timbuchwaldt/dblock/blockstore"
+	"github.com/timbuchwaldt/dblock/incidentstore"
+	"log"
+	"net/http"
+	"sync"
+	"time"
 )
 
 var (
-  addr = flag.String("listen-address", ":8080", "The address to listen for prometheus requests.")
-  timebucket = flag.Duration("incident-bucket", 5 * time.Minute, "The number of seconds of incidents we compare.")
-  max_incidents = flag.Int("max-incidents", 5, "The number incidents allowed per incident-bucket.")
+	addr          = flag.String("listen-address", ":8080", "The address to listen for prometheus requests.")
+	timebucket    = flag.Duration("incident-bucket", 5*time.Minute, "The number of seconds of incidents we compare.")
+	max_incidents = flag.Int("max-incidents", 5, "The number incidents allowed per incident-bucket.")
 )
 
 func Main() {
-  flag.Parse()
-  http.Handle("/metrics", prometheus.Handler())
-  go http.ListenAndServe(*addr, nil)
+	flag.Parse()
+	http.Handle("/metrics", prometheus.Handler())
+	go http.ListenAndServe(*addr, nil)
 
+	var wg sync.WaitGroup
+	wg.Add(1)
 
-  var wg sync.WaitGroup
-  wg.Add(1)
+	log.Println("Hello world")
+	incidentChan := make(chan incidentstore.Incident, 100)
+	blockChan := make(chan blockstore.Block, 100)
+	blockControlChan := make(chan blocker.ControlMsg, 100)
 
-  log.Println("Hello world")
-  incidentChan := make(chan incidentstore.Incident, 100)
-  blockChan := make(chan blockstore.Block, 100)
-  blockControlChan := make(chan blocker.ControlMsg, 100)
+	go blocker.Blocker(blockControlChan)
+	go blockstore.BlockStore(blockChan, blockControlChan)
+	go incidentstore.IncidentStore(incidentChan, blockChan, *timebucket, *max_incidents)
+	go follow_and_analyze("foo", incidentChan)
+	go follow_and_analyze("bar", incidentChan)
 
-  go blocker.Blocker(blockControlChan)
-  go blockstore.BlockStore(blockChan, blockControlChan)
-  go incidentstore.IncidentStore(incidentChan, blockChan, *timebucket, *max_incidents)
-  go follow_and_analyze("foo", incidentChan)
-  go follow_and_analyze("bar", incidentChan)
-
-
-  wg.Wait()
+	wg.Wait()
 
 }
 
 var (
-    incidentsCounter = prometheus.NewCounter(prometheus.CounterOpts{
-      Name: "incidents_total",
-      Help: "Number of total dblock incidents",
-      })
+	incidentsCounter = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "incidents_total",
+		Help: "Number of total dblock incidents",
+	})
 )
 
-func init(){
-  prometheus.MustRegister(incidentsCounter);
+func init() {
+	prometheus.MustRegister(incidentsCounter)
 }
 
 func follow_and_analyze(filename string, c chan incidentstore.Incident) {
-  t, err := tail.TailFile(filename,
-    tail.Config{
-      Follow:   true,
-      ReOpen:   true,
-      Location: &tail.SeekInfo{Offset: 0, Whence: 2}})
+	t, err := tail.TailFile(filename,
+		tail.Config{
+			Follow:   true,
+			ReOpen:   true,
+			Location: &tail.SeekInfo{Offset: 0, Whence: 2}})
 
-  if err != nil {
-    log.Fatal(err)
-  }
+	if err != nil {
+		log.Fatal(err)
+	}
 
-  for line := range t.Lines {
-    incidentsCounter.Inc()
-    // match against regexes here, if one matches, create "incident" struct
-    c <- incidentstore.Incident{Filename: filename, Ip: "192.168.100.1", Time: time.Now(), Line: line.Text}
-  }
+	for line := range t.Lines {
+		incidentsCounter.Inc()
+		// match against regexes here, if one matches, create "incident" struct
+		c <- incidentstore.Incident{Filename: filename, Ip: "192.168.100.1", Time: time.Now(), Line: line.Text}
+	}
 
 }
