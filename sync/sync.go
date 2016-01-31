@@ -22,10 +22,21 @@ func Start(blockControlChan chan blocker.ControlMsg) {
 		log.Fatal(err)
 	}
 	kapi := client.NewKeysAPI(c)
-	watcher := kapi.Watcher("dblock", &client.WatcherOptions{Recursive: true})
+	go watchKey("dblock", blockControlChan, kapi)
+	go watchKey("dblock6", blockControlChan, kapi)
+}
+
+func ipFromEtcdKey(key string) net.IP {
+	split := strings.Split(key, "/")
+	return net.ParseIP(split[2])
+}
+
+func watchKey(key string, blockControlChan chan blocker.ControlMsg, kapi client.KeysAPI) {
+	watcher := kapi.Watcher(key, &client.WatcherOptions{Recursive: true})
+
 	for {
 		response, _ := watcher.Next(context.Background())
-		log.Println(response.Action)
+
 		switch response.Action {
 		case "set":
 			ip := ipFromEtcdKey(response.Node.Key)
@@ -41,9 +52,4 @@ func Start(blockControlChan chan blocker.ControlMsg) {
 			log.Println("Key expired: " + response.Node.Key)
 		}
 	}
-}
-
-func ipFromEtcdKey(key string) net.IP {
-	split := strings.Split(key, "/")
-	return net.ParseIP(split[2])
 }
