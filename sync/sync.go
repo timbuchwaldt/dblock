@@ -17,10 +17,12 @@ func Start(blockControlChan chan blocker.ControlMsg, syncChannel chan blocker.Co
 		// set timeout per request to fail fast when the target endpoint is unavailable
 		HeaderTimeoutPerRequest: time.Second,
 	}
+
 	c, err := client.New(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	kapi := client.NewKeysAPI(c)
 
 	log.Println("[sync]\tEnsuring dblock + dblock6 directories exist")
@@ -32,6 +34,7 @@ func Start(blockControlChan chan blocker.ControlMsg, syncChannel chan blocker.Co
 	if err2 != nil {
 		log.Fatal(err2)
 	}
+
 	for _, node := range result.Node.Nodes {
 		handleKey(*node, blockControlChan, true)
 	}
@@ -41,6 +44,7 @@ func Start(blockControlChan chan blocker.ControlMsg, syncChannel chan blocker.Co
 	if err3 != nil {
 		log.Fatal(err3)
 	}
+
 	for _, node := range result6.Node.Nodes {
 		handleKey(*node, blockControlChan, true)
 	}
@@ -67,7 +71,6 @@ func sync(kapi client.KeysAPI, syncChannel chan blocker.ControlMsg) {
 			log.Println("[sync]\tAdded block: " + msg.Ip.String())
 		}
 	}
-
 }
 
 func ipFromEtcdKey(key string) net.IP {
