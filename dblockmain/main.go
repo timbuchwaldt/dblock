@@ -13,8 +13,11 @@ import (
   "github.com/prometheus/client_golang/prometheus"
 )
 
-var addr = flag.String("listen-address", ":8080", "The address to listen for prometheus requests.")
-
+var (
+  addr = flag.String("listen-address", ":8080", "The address to listen for prometheus requests.")
+  timebucket = flag.Duration("incident-bucket", 5 * time.Minute, "The number of seconds of incidents we compare.")
+  max_incidents = flag.Int("max-incidents", 5, "The number incidents allowed per incident-bucket.")
+)
 
 func Main() {
   flag.Parse()
@@ -32,7 +35,7 @@ func Main() {
 
   go blocker.Blocker(blockControlChan)
   go blockstore.BlockStore(blockChan, blockControlChan)
-  go incidentstore.IncidentStore(incidentChan, blockChan)
+  go incidentstore.IncidentStore(incidentChan, blockChan, *timebucket, *max_incidents)
   go follow_and_analyze("foo", incidentChan)
   go follow_and_analyze("bar", incidentChan)
 
