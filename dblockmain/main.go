@@ -65,10 +65,7 @@ func follow_and_analyze(filename string, c chan incidentstore.Incident) {
 		log.Fatal(err)
 	}
 
-	regex, err := regexp.Compile("Accepted publickey for .+ from (?P<ip>.+) port .*")
-	if err != nil {
-		log.Fatal(err)
-	}
+	regex := regexp.MustCompile("Accepted publickey for .+ from (?P<ip>.+) port .*")
 
 	for line := range t.Lines {
 		incidentsCounter.Inc()
