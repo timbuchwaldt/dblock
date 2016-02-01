@@ -63,9 +63,13 @@ func sync(kapi client.KeysAPI, syncChannel chan blocker.ControlMsg) {
 		} else {
 			folder = "dblock/"
 		}
-		_, err := kapi.Set(context.Background(), folder+msg.Ip.String(), "0", &client.SetOptions{TTL: 5 * time.Second})
+		_, err := kapi.Set(context.Background(), folder+msg.Ip.String(), "0", &client.SetOptions{TTL: 5 * time.Second, PrevExist: client.PrevNoExist})
 		if err != nil {
-			log.Fatal(err)
+			if err.(client.Error).Code == client.ErrorCodeNodeExist {
+				log.Print("Block already existed, not adding again")
+			} else {
+				log.Fatal(err)
+			}
 		} else {
 			// print common key info
 			log.Println("[sync]\tAdded block: " + msg.Ip.String())

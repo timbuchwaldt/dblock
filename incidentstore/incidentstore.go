@@ -2,6 +2,8 @@ package incidentstore
 
 import (
 	"github.com/timbuchwaldt/dblock/blocker"
+	"github.com/timbuchwaldt/dblock/config"
+	"log"
 	"net"
 	"time"
 )
@@ -13,7 +15,8 @@ type Incident struct {
 	Line     string
 }
 
-func IncidentStore(incidentChan chan Incident, syncChannel chan blocker.ControlMsg, timebucket time.Duration, max_incidents int) {
+func IncidentStore(incidentChan chan Incident, syncChannel chan blocker.ControlMsg, config config.Config) {
+	log.Println(config)
 	ticker := time.NewTicker(time.Second * 5)
 	var incidents []Incident
 	for {
@@ -24,7 +27,7 @@ func IncidentStore(incidentChan chan Incident, syncChannel chan blocker.ControlM
 			// cleanup
 			var newIncidents []Incident
 			for _, incident := range incidents {
-				if time.Since(incident.Time) < timebucket {
+				if time.Since(incident.Time) < time.Duration(config.IncidentTime.Nanoseconds()) {
 					newIncidents = append(newIncidents, incident)
 				}
 			}
@@ -36,7 +39,7 @@ func IncidentStore(incidentChan chan Incident, syncChannel chan blocker.ControlM
 				buckets[incident.Ip.String()] += 1
 			}
 			for ip, violations := range buckets {
-				if violations > max_incidents {
+				if violations > config.MaxIncidents {
 					syncChannel <- blocker.ControlMsg{Ip: net.ParseIP(ip), Block: true}
 				}
 			}

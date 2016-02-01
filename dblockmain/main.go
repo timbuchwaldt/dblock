@@ -5,6 +5,7 @@ import (
 	"github.com/hpcloud/tail"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/timbuchwaldt/dblock/blocker"
+	"github.com/timbuchwaldt/dblock/config"
 	"github.com/timbuchwaldt/dblock/incidentstore"
 	"github.com/timbuchwaldt/dblock/sync"
 
@@ -16,15 +17,13 @@ import (
 )
 
 var (
-	addr          = flag.String("listen-address", ":8080", "The address to listen for prometheus requests.")
-	timebucket    = flag.Duration("incident-bucket", 5*time.Minute, "The number of seconds of incidents we compare.")
-	max_incidents = flag.Int("max-incidents", 5, "The number incidents allowed per incident-bucket.")
-	config_file   = flag.String("config", "/etc/dblock.toml", "The TOML config file to read.")
+	addr        = flag.String("listen-address", ":8080", "The address to listen for prometheus requests.")
+	config_file = flag.String("config", "/etc/dblock.toml", "The TOML config file to read.")
 )
 
 func Main() {
 	flag.Parse()
-	config := ParseConfig(*config_file)
+	config := config.ParseConfig(*config_file)
 
 	http.Handle("/metrics", prometheus.Handler())
 
@@ -36,7 +35,7 @@ func Main() {
 		Startup: Start blocker, block store, incident store
 	*/
 	go blocker.Blocker(blockControlChan, config.Whitelist)
-	go incidentstore.IncidentStore(incidentChan, syncChannel, *timebucket, *max_incidents)
+	go incidentstore.IncidentStore(incidentChan, syncChannel, config)
 	go sync.Start(blockControlChan, syncChannel)
 	/*
 		Startup: start log file follower based on toml config

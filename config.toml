@@ -1,5 +1,6 @@
 whitelist = ["127.0.0.1/8", "10.0.0.0/8"]
-
+maxincidents= 5
+incidenttime = "30s"
 [Files.bar]
 filename = "bar"
 regexes = ["Accepted publickey for .+ from (?P<ip>.+) port .*"]
