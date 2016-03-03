@@ -1,0 +1,12 @@
+language: go
+go:
+- 1.6
+deploy:
+  provider: releases
+  api_key:
+    secure: gy6QBx9jEEbN14vavE5Q2ZWe7DUtDyjy9sB2vVpAAv7Zu+lW4VFvtDdxj7HcOoSBO+x4XLQarPyYgFtEPxb0ZOSDTNXn5/pRsY9v68HdaSrVKZZGeOXK+hPJtWriWDRGPJOSnDTNxImh4/gKENdOEvU5AJtIauwM/vcw8QU9GK+pI2xlbh7V8zTYM7/pzi6EMOfYAMQf8xyQnNhHJbAWdKA3oWNGxZ7iefHmV2q3dW4rvYCav/JIDMQhdfP06Er9OWMX1ZIWalGp8qEUofWh7XmYTDNLd2B6hMvquiC5sMV4jgvB6LlY099cxuelb9NC9shVJFY2R0REw/xhiUFPUW+vE3epDsRu/Bvtx15xKz5/OfQ960RkMmPOS5dVZwI2aPEIil1Jr2bQog2kGbU0Ag72PsSbMykPSF0oK4VipT3M/dw4agL2TNDlMyTQOyF0KX+9eJRoWrhOtgQhSX2w7QJrWoblHyecNVDbhVN0qqu4dNDBpUMI7MkdB1fIGgqWLUqKI6i9D46hGrB/Fg4AJ2jzKJmSNxv/WOsPT9JYZMG8bjLVio5ar+LIVF/avE+pdSHiDAn8ZC77eX+n3/Pl3BqndRMg/WEKcQ7rJIDEYY+pr1PJ0GFjE6bSmJa6ftQCYxBJa07kZaukWtPkqSCl/qiLDRkW8WzhbFx/6PHUOqk=
+  file: dblock
+  skip_cleanup: true
+  on:
+    repo: timbuchwaldt/dblock
+    tags: true
