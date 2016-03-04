@@ -77,7 +77,7 @@ func sync(kapi client.KeysAPI, syncChannel chan blocker.ControlMsg) {
 		} else {
 			folder = "dblock/"
 		}
-		_, err := kapi.Set(context.Background(), folder+msg.Ip.String(), "0", &client.SetOptions{TTL: 60 * time.Second, PrevExist: client.PrevNoExist})
+		_, err := kapi.Set(context.Background(), folder+msg.Ip.String(), "0", &client.SetOptions{TTL: 5 * time.Second, PrevExist: client.PrevNoExist})
 		if err != nil {
 			if err.(client.Error).Code == client.ErrorCodeNodeExist {
 				log.Print("Block already existed, not adding again")
