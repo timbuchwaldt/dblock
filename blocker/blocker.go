@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 	"os/exec"
+	"strings"
 	"time"
 )
 
@@ -73,8 +74,9 @@ func Blocker(controlChan chan ControlMsg, stringWhitelist []string) {
 func executeCommand(arguments string) {
 	// timer: blocker.execute_command
 	log.Printf("Executing %s", arguments)
+	split_args := strings.Fields(arguments)
 	start := time.Now()
-	err := exec.Command("/sbin/ipset", arguments).Run()
+	err := exec.Command("/sbin/ipset", split_args...).Run()
 	if err != nil {
 		log.Fatal(err)
 	}
