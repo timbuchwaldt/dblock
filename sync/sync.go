@@ -3,12 +3,25 @@ package sync
 import (
 	"github.com/coreos/etcd/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/coreos/etcd/client"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/timbuchwaldt/dblock/blocker"
 	"log"
 	"net"
 	"strings"
 	"time"
 )
+
+var (
+	sync_timing = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name:    "sync_set_key",
+		Help:    "microseconds it took to set a new block in etcd",
+		Buckets: []float64{.0005, .001, .005, .01, .05, .1, .5, 1, 2},
+	})
+)
+
+func init() {
+	prometheus.MustRegister(sync_timing)
+}
 
 func Start(blockControlChan chan blocker.ControlMsg, syncChannel chan blocker.ControlMsg, etcdAddresses []string) {
 	cfg := client.Config{
@@ -57,6 +70,7 @@ func Start(blockControlChan chan blocker.ControlMsg, syncChannel chan blocker.Co
 func sync(kapi client.KeysAPI, syncChannel chan blocker.ControlMsg) {
 	for {
 		msg := <-syncChannel
+		start := time.Now()
 		var folder string
 		if msg.Ip.To4() != nil {
 			folder = "dblock6/"
@@ -74,6 +88,9 @@ func sync(kapi client.KeysAPI, syncChannel chan blocker.ControlMsg) {
 			// print common key info
 			log.Println("[sync]\tAdded block: " + msg.Ip.String())
 		}
+		elapsed := time.Since(start)
+		log.Printf("sync took %s", elapsed)
+		sync_timing.Observe(elapsed.Seconds())
 	}
 }
 
@@ -90,12 +107,15 @@ func watchKey(key string, blockControlChan chan blocker.ControlMsg, kapi client.
 
 		switch response.Action {
 		case "set":
+			// counter: sync.set
 			handleKey(*response.Node, blockControlChan, true)
 			log.Println("[sync]\tetcd: add: " + response.Node.Key)
 		case "delete":
+			// counter: sync.delete
 			handleKey(*response.Node, blockControlChan, false)
 			log.Println("[sync]\tetcd: delete: " + response.Node.Key)
 		case "expire":
+			// counter: sync.expire
 			handleKey(*response.Node, blockControlChan, false)
 			log.Println("[sync]\tetcd: expired: " + response.Node.Key)
 		}

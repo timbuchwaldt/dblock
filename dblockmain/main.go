@@ -91,7 +91,6 @@ func follow_and_analyze(filename string, regexes []string, c chan incidentstore.
 				}
 			}
 		}
-		// match against regexes here, if one matches, create "incident" struct
 	}
 
 }

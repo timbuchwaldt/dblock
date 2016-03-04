@@ -22,9 +22,12 @@ func IncidentStore(incidentChan chan Incident, syncChannel chan blocker.ControlM
 	for {
 		select {
 		case msg := <-incidentChan:
+			// counter: incidentstore.incident_received
 			incidents = append(incidents, msg)
 		case <-ticker.C:
-			// cleanup
+			// counter: incidentstore.cleanup
+			// timer: incidentstore.cleanup
+			start := time.Now()
 			var newIncidents []Incident
 			for _, incident := range incidents {
 				if time.Since(incident.Time) < time.Duration(config.IncidentTime.Nanoseconds()) {
@@ -40,9 +43,12 @@ func IncidentStore(incidentChan chan Incident, syncChannel chan blocker.ControlM
 			}
 			for ip, violations := range buckets {
 				if violations > config.MaxIncidents {
+					// counter: incidentstore.blocks
 					syncChannel <- blocker.ControlMsg{Ip: net.ParseIP(ip), Block: true}
 				}
 			}
+			elapsed := time.Since(start)
+			log.Printf("cleanup took %s", elapsed)
 		}
 	}
 }
