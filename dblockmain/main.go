@@ -6,14 +6,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/timbuchwaldt/dblock/blocker"
 	"github.com/timbuchwaldt/dblock/config"
-	"github.com/timbuchwaldt/dblock/incidentstore"
 	"github.com/timbuchwaldt/dblock/sync"
 
 	"log"
 	"net"
 	"net/http"
 	"regexp"
-	"time"
 )
 
 var (
@@ -27,7 +25,6 @@ func Main() {
 
 	http.Handle("/metrics", prometheus.Handler())
 
-	incidentChan := make(chan incidentstore.Incident, 100)
 	blockControlChan := make(chan blocker.ControlMsg, 100)
 	syncChannel := make(chan blocker.ControlMsg, 100)
 
@@ -35,7 +32,6 @@ func Main() {
 		Startup: Start blocker, block store, incident store
 	*/
 	go blocker.Blocker(blockControlChan, config.Whitelist)
-	go incidentstore.IncidentStore(incidentChan, syncChannel, config)
 	go sync.Start(blockControlChan, syncChannel, config.EtcdAddresses)
 	/*
 		Startup: start log file follower based on toml config
@@ -43,7 +39,7 @@ func Main() {
 
 	for name, fileConfig := range config.Files {
 		log.Println("[main]\tSetting up follower for " + name)
-		go follow_and_analyze(fileConfig.Filename, fileConfig.Regexes, incidentChan)
+		go follow_and_analyze(fileConfig.Filename, fileConfig.Regexes, syncChannel)
 	}
 
 	http.ListenAndServe(*addr, nil)
@@ -61,7 +57,7 @@ func init() {
 	prometheus.MustRegister(incidentsCounter)
 }
 
-func follow_and_analyze(filename string, regexes []string, c chan incidentstore.Incident) {
+func follow_and_analyze(filename string, regexes []string, c chan blocker.ControlMsg) {
 	t, err := tail.TailFile(filename,
 		tail.Config{
 			Follow:   true,                                  // actually follow the logs
@@ -84,7 +80,7 @@ func follow_and_analyze(filename string, regexes []string, c chan incidentstore.
 			if result != nil {
 				ip := net.ParseIP(result[1])
 				if ip != nil {
-					c <- incidentstore.Incident{Filename: filename, Ip: ip, Time: time.Now(), Line: line.Text}
+					c <- blocker.ControlMsg{Ip: ip, Block: true}
 
 					// break here, this line matched on regex
 					break
