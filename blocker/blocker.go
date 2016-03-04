@@ -63,7 +63,7 @@ func Blocker(controlChan chan ControlMsg, stringWhitelist []string) {
 }
 
 func executeCommand(arguments string) {
-	err := exec.Command("echo", "ipset "+arguments).Run()
+	err := exec.Command("/sbin/ipset " + arguments).Run()
 	if err != nil {
 		log.Fatal(err)
 	}
