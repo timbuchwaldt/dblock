@@ -17,10 +17,11 @@ func (d *duration) UnmarshalText(text []byte) error {
 }
 
 type Config struct {
-	Files        map[string]LogFileConfig
-	Whitelist    []string
-	IncidentTime duration
-	MaxIncidents int
+	Files         map[string]LogFileConfig
+	Whitelist     []string
+	IncidentTime  duration
+	MaxIncidents  int
+	EtcdAddresses []string
 }
 
 type LogFileConfig struct {

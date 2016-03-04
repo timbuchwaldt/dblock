@@ -36,7 +36,7 @@ func Main() {
 	*/
 	go blocker.Blocker(blockControlChan, config.Whitelist)
 	go incidentstore.IncidentStore(incidentChan, syncChannel, config)
-	go sync.Start(blockControlChan, syncChannel)
+	go sync.Start(blockControlChan, syncChannel, config.EtcdAddresses)
 	/*
 		Startup: start log file follower based on toml config
 	*/

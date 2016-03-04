@@ -10,9 +10,9 @@ import (
 	"time"
 )
 
-func Start(blockControlChan chan blocker.ControlMsg, syncChannel chan blocker.ControlMsg) {
+func Start(blockControlChan chan blocker.ControlMsg, syncChannel chan blocker.ControlMsg, etcdAddresses []string) {
 	cfg := client.Config{
-		Endpoints: []string{"http://127.0.0.1:2379"},
+		Endpoints: etcdAddresses,
 		Transport: client.DefaultTransport,
 		// set timeout per request to fail fast when the target endpoint is unavailable
 		HeaderTimeoutPerRequest: time.Second,
