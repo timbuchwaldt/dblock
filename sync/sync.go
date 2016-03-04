@@ -72,7 +72,7 @@ func sync(kapi client.KeysAPI, syncChannel chan blocker.ControlMsg) {
 		msg := <-syncChannel
 		start := time.Now()
 		var folder string
-		if msg.Ip.To4() != nil {
+		if msg.Ip.To4() == nil {
 			folder = "dblock6/"
 		} else {
 			folder = "dblock/"
