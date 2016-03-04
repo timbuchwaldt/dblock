@@ -24,7 +24,7 @@ func Blocker(controlChan chan ControlMsg, stringWhitelist []string) {
 
 	executeCommand("create dblock hash:ip maxelem 1048576 -exist")
 	executeCommand("flush dblock")
-	executeCommand("create dblock6 hash:ip maxelem 1048576 inet6 -exist")
+	executeCommand("create dblock6 hash:ip maxelem 1048576 family inet6 -exist")
 	executeCommand("flush dblock6 ")
 
 	for msg := range controlChan {
