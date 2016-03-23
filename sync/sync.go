@@ -109,6 +109,10 @@ func watchKey(key string, blockControlChan chan blocker.ControlMsg, kapi client.
 			// counter: sync.set
 			handleKey(*response.Node, blockControlChan, true)
 			log.Println("[sync]\tetcd: create: " + response.Node.Key)
+		case "set":
+			// counter: sync.set
+			handleKey(*response.Node, blockControlChan, true)
+			log.Println("[sync]\tetcd: create: " + response.Node.Key)
 		case "delete":
 			// counter: sync.delete
 			handleKey(*response.Node, blockControlChan, false)
